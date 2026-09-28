@@ -7,12 +7,12 @@ class NumberlinkBruteForce : ISolver<NUMBERLINK> {
     public string solverDefinition { get; } = "TODO: solverDefinition";
     public string source { get; } = "TODO: source";
     public string[] contributors { get; } = {
-	"Andrija Sevaljevic",
-	"Brayden Peck",
-	"Charles Johnson"
+    "Andrija Sevaljevic",
+    "Brayden Peck",
+    "Charles Johnson"
     };
 
-	
+
     public bool timerHasExpired { get; set; }
     public SolverType solverType { get; } = SolverType.BruteForce;
 
@@ -24,6 +24,6 @@ class NumberlinkBruteForce : ISolver<NUMBERLINK> {
     public NumberlinkBruteForce() { }
 
     public string solve(NUMBERLINK problem) {
-	return "TODO: string solve(NUMBERLINK problem)";
+        return "TODO: string solve(NUMBERLINK problem)";
     }
 }

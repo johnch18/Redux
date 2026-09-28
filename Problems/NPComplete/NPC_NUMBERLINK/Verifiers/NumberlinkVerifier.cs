@@ -12,15 +12,15 @@ class NumberlinkVerifier : IVerifier<NUMBERLINK> {
     public string source { get; } = "TODO: source";
     public string certificate { get; } = "TODO: certificate";
     public string[] contributors { get; } = {
-	"Andrija Sevaljevic",
-	"Brayden Peck",
-	"Charles Johnson"
+    "Andrija Sevaljevic",
+    "Brayden Peck",
+    "Charles Johnson"
     };
 
     public NumberlinkVerifier() { /* ... */ }
 
     public bool verify(NUMBERLINK problem, string cert) {
-	//v TODO: Verify
-	return true;
+        //v TODO: Verify
+        return true;
     }
 }
