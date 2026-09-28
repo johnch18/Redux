@@ -3,19 +3,19 @@ using API.DummyClasses;
 
 using API.Problems.NPComplete.NPC_NUMBERLINK.Solvers;
 using API.Problems.NPComplete.NPC_NUMBERLINK.Verifiers;
-///v For later
-// using API.Problems.NPComplete.NPC_NUMBERLINK.Vizualizations;
-// using SPADE;
+//v For later
+//v using API.Problems.NPComplete.NPC_NUMBERLINK.Vizualizations;
+//v using SPADE;
 
 using System.Collections.Generic;
 
 namespace API.Problems.NPComplete.NPC_NUMBERLINK;
 
-class NUMBERLINK : IProblem<NumberlinkBruteForce, NumberlinkVerifier, DummyVisualization> {
+class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization> {
     public string problemName { get; } = "Numberlink";
     public string problemLink { get; } = "https://en.wikipedia.org/wiki/Numberlink";
 
-    ///v Want to draft this a bit
+    //v Want to draft this a bit
     public string formalDefinition { get; } = "TODO: formalDefinition";
 
     public string problemDefinition { get; } = "Numberlink is a pathing problem where given an MxN grid, some collection of numbered (sometimes colored) node pairs, the goal being to construct orthogonal paths between each pair while also filling the grid.";
@@ -24,7 +24,7 @@ class NUMBERLINK : IProblem<NumberlinkBruteForce, NumberlinkVerifier, DummyVisua
 
     public string outputDescription { get; } = "A new grid where all 0 values have been replaced by numbers to reflect the resulting paths.";
 
-    /// We have multiple so I'm holding off for now
+    //v We have multiple so I'm holding off for now
     public string source { get; } = "TODO: source";
     
     public string sourceLink { get; } = "TODO: sourceLink";
@@ -42,11 +42,13 @@ class NUMBERLINK : IProblem<NumberlinkBruteForce, NumberlinkVerifier, DummyVisua
 
     public string wikiName { get; } = "Numberlink";
 
-    public NumberlinkBruteForce defaultSolver { get; } = new NumberlinkBruteForce();
-    public NumberlinkVerifier defaultVerifier { get; } new NumberlinkVerifier();
+    ///v TODO: Change to real solver
+    public DummySolver defaultSolver { get; } = new DummySolver();
+    public NumberlinkVerifier defaultVerifier { get; } = new NumberlinkVerifier();
+    public DummyVisualization defaultVisualization { get; } = new DummyVisualization();
 
     public ComplexityClass complexityClass { get; } = ComplexityClass.NPComplete;
-    public ProblemType problemType { get; } = ProblemType.GameAndPuzzles;
+    public ProblemType problemType { get; } = ProblemType.GamesAndPuzzles;
     
     public string[] contributors { get; } = {
 	"Andrija Sevaljevic",
@@ -54,33 +56,32 @@ class NUMBERLINK : IProblem<NumberlinkBruteForce, NumberlinkVerifier, DummyVisua
 	"Charles Johnson"
     };
 
-    /// TODO: Internal DSA, probably just an enumerated grid + span?
+    //v TODO: Internal DSA, probably just an enumerated grid + span?
 
     
     public string instance { get; set; } = string.Empty;
 
-    /// Our input grid of enumerated cells
+    //v Our input grid of enumerated cells
     public int[][] grid { get; set; }
 
-    /// Spans in each dimension
+    //v Spans in each dimension
     public int spanX { get; set; }
     public int spanY { get; set; }
 
-    /// Hash set of our colorings/numberings
+    //v Hash set of our colorings/numberings
     public HashSet<int> numbersPresent { get; set; }
 
     public NUMBERLINK() : this(_defaultInstance) { /* ... */ }
     
     public NUMBERLINK(string inp) {
-	/// I made this based on the SUDOKU problem instance
+	//v I made this based on the SUDOKU problem instance
 	instance = inp;
 	numbersPresent = new HashSet<int>();
 	
 	inp = inp.ReplaceLineEndings(string.Empty);
-	///
 	var rows = inp.Split(";", StringSplitOptions.RemoveEmptyEntries);
 
-	///v Sentinel vqlue to help parse the row lengths
+	//v Sentinel vqlue to help parse the row lengths
 	spanX = -1;
 	spanY = rows.Length;
 	grid = new int[spanY][];
@@ -89,9 +90,13 @@ class NUMBERLINK : IProblem<NumberlinkBruteForce, NumberlinkVerifier, DummyVisua
 
 	for (int i = 0; i < spanY; i++) {
 	    var nums = rows[i].Split(",", StringSplitOptions.RemoveEmptyEntries);
-	    grid[i] = Array.ConvertAll(nums, int.Parse);
+	    try {
+		grid[i] = Array.ConvertAll(nums, int.Parse);
+	    } catch (FormatException) {
+		throw new InvalidOperationException("Cell entries must be valid integers.");
+	    }
 
-	    ///v If we have our sentinel value 
+	    //v If we have our sentinel value 
 	    if (spanX < 0) spanX = grid[i].Length;
 
 	    if (grid[i].Length != spanX) {
@@ -101,22 +106,24 @@ class NUMBERLINK : IProblem<NumberlinkBruteForce, NumberlinkVerifier, DummyVisua
 
 	    for (int j = 0; j < spanX; j++) {
 		int num = grid[i][j];
-		///v Ignore 0, it's fine.
+		//v Ignore 0, it's fine.
 		if (num == 0) continue;
-		///v We don't want negative numbers.
+		//v We don't want negative numbers.
 		if (num < 0) {
-		    throw new IllegalOperationException("Grid cells cannot be negative.");
+		    throw new InvalidOperationException("Grid cells cannot be negative.");
 		}
 		
 		int popNum = 0;
-		if (popCounts.Contains(num)) popNum = popCounts[num];
+		if (popCounts.ContainsKey(num)) popNum = popCounts[num];
 		popCounts[num] = 1 + popNum;
 	    }
 	}
 
-	foreach (v in popCounts.Values) {
+	//v Validate that non-zero entries don't have counts less than 2
+	//v We already check for > 2 in the above loop.
+	foreach (int v in popCounts.Values) {
 	    if (v < 2)
-		throw new IllegalOperationException("Non-zero numbers must occur exactly twice.");
+		throw new InvalidOperationException("Non-zero numbers must occur exactly twice.");
 	}
 	
     }

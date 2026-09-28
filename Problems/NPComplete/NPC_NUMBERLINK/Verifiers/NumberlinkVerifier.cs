@@ -20,7 +20,7 @@ class NumberlinkVerifier : IVerifier<NUMBERLINK> {
     public NumberlinkVerifier() { /* ... */ }
 
     public bool verify(NUMBERLINK problem, string cert) {
-	/// TODO: Verify
+	//v TODO: Verify
 	return true;
     }
 }

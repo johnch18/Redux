@@ -11,9 +11,10 @@ class NumberlinkBruteForce : ISolver<NUMBERLINK> {
 	"Brayden Peck",
 	"Charles Johnson"
     };
-	;
+
+	
     public bool timerHasExpired { get; set; }
-    public SolverType { get; } = SolverType.BruteForce;
+    public SolverType solverType { get; } = SolverType.BruteForce;
 
     ///v TODO: complexityBucket
     public SolverComplexityBucket complexityBucket { get; } = SolverComplexityBucket.Unclassified;
