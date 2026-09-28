@@ -12,6 +12,7 @@ using System.Collections.Generic;
 namespace API.Problems.NPComplete.NPC_NUMBERLINK;
 
 class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization> {
+
     public string problemName { get; } = "Numberlink";
     public string problemLink { get; } = "https://en.wikipedia.org/wiki/Numberlink";
 
@@ -31,7 +32,7 @@ class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization>
 
     public const string InstanceGrammar = "N semicolon separated rows of M comma separated non-negative numbers, 0 representing an empty space.";
 
-    private static readonly string _defaultInstance = "1, 0, 0, 2, 3;\n0, 0, 0, 4, 0;\n0, 0, 4, 0, 0;\n0, 2, 3, 0, 5;\n0, 1, 5, 0, 0;";
+    private static readonly string _defaultInstance = "1,0,0,2,3;\n0,0,0,4,0;\n0,0,4,0,0;\n0,2,3,0,5;\n0,1,5,0,0;";
 
 
     public string defaultInstance { get; } = _defaultInstance;
@@ -126,5 +127,21 @@ class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization>
                 throw new InvalidOperationException("Non-zero numbers must occur exactly twice.");
         }
 
+    }
+
+    /*
+     * Gets the cell at x, y
+     * Cells are row-major, so this is a convenience for x,y ordering
+     * Returns -1 on OOB
+     * TODO: Add modular index wrap?
+     */
+    public int at(int x, int y) {
+        if (!in_bounds(x, y))
+            return -1;
+        return grid[y][x];
+    }
+
+    public bool in_bounds(int x, int y) {
+        return (0 <= x && x < spanX) && (0 <= y && y < spanY);
     }
 }
