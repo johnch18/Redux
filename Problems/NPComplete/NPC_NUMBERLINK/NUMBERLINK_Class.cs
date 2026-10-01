@@ -13,7 +13,7 @@ namespace API.Problems.NPComplete.NPC_NUMBERLINK;
 
 class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization> {
 
-    public string problemName { get; } = "Numberlink";
+    public string problemName { get; } = "Zig-Zag Numberlink";
     public string problemLink { get; } = "https://en.wikipedia.org/wiki/Numberlink";
 
     //v Want to draft this a bit
