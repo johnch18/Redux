@@ -67,7 +67,7 @@ class NumberlinkMRVBacktracking : ISolver<NUMBERLINK> {
         }
 
         string certificate = string.Join("\n", rows);
-        if(!problem.defaultVerifier.verify(problem, certificate)) certificate = "{}";
+        if (!problem.defaultVerifier.verify(problem, certificate)) certificate = "{}";
         return certificate;
     }
 
