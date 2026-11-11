@@ -3,37 +3,35 @@ using API.DummyClasses;
 
 using API.Problems.NPComplete.NPC_NUMBERLINK.Solvers;
 using API.Problems.NPComplete.NPC_NUMBERLINK.Verifiers;
-//v For later
-//v using API.Problems.NPComplete.NPC_NUMBERLINK.Vizualizations;
-//v using SPADE;
 
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 
 namespace API.Problems.NPComplete.NPC_NUMBERLINK;
 
-class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization> {
+class NUMBERLINK : IProblem<NumberlinkIntelligentSolver, NumberlinkVerifier, DummyVisualization> {
 
     public string problemName { get; } = "Zig-Zag Numberlink";
     public string problemLink { get; } = "https://en.wikipedia.org/wiki/Numberlink";
 
-    //v Want to draft this a bit
-    public string formalDefinition { get; } = "TODO: formalDefinition";
+    public string formalDefinition { get; } = "{(G, T) | G is an M x N grid graph, T = {(s_1,t_1),...,(s_k,t_k)} is a set of k pairs of distinct cells of G (all 2k cells distinct), and there exist k vertex-disjoint paths P_1,...,P_k in G, with P_i from s_i to t_i, such that every cell of G lies on exactly one P_i}";
 
-    public string problemDefinition { get; } = "Numberlink is a pathing problem where given an MxN grid, some collection of numbered (sometimes colored) node pairs, the goal being to construct orthogonal paths between each pair while also filling the grid.";
+    public string problemDefinition { get; } = "Numberlink (Flow Free style) is a pathing problem: given an MxN grid and a collection of numbered cell pairs, connect each pair with an orthogonal path so that no two paths share a cell and together the paths cover every cell of the grid. Paths may bend freely (the 'zig-zag' variant).";
 
     public string inputDescription { get; } = "A grid of non-negative numbers, where each non-zero number appears exactly twice. Zero indicates an empty grid cell.";
 
-    public string outputDescription { get; } = "A new grid where all 0 values have been replaced by numbers to reflect the resulting paths.";
+    public string outputDescription { get; } = "A grid in which every cell holds its path number and the direction (R, L, U, D) of the next cell on its path, or F at the path's finishing endpoint.";
 
-    //v We have multiple so I'm holding off for now
-    public string source { get; } = "TODO: source";
+    public string source { get; } = "Adcock, A., Demaine, E. D., Demaine, M. L., O'Brien, M. P., Reidl, F., Sanchez Villaamil, F., Sullivan, B. D. (2015). Zig-Zag Numberlink is NP-Complete. Journal of Information Processing, 23(3), 239-245.";
 
-    public string sourceLink { get; } = "TODO: sourceLink";
+    public string sourceLink { get; } = "https://arxiv.org/abs/1410.5845";
 
-    public const string InstanceGrammar = "N semicolon separated rows of M comma separated non-negative numbers, 0 representing an empty space.";
+    public const string InstanceGrammar = "N semicolon (or newline) separated rows of M comma separated non-negative numbers, 0 representing an empty space. Each non-zero number must appear exactly twice.";
 
     private static readonly string _defaultInstance = "1,0,0,2,3;\n0,0,0,4,0;\n0,0,4,0,0;\n0,2,3,0,5;\n0,1,5,0,0;";
 
+    private static readonly char[] RowSeparators = { ';', '\n', '\r' };
 
     public string defaultInstance { get; } = _defaultInstance;
 
@@ -43,8 +41,7 @@ class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization>
 
     public string wikiName { get; } = "Numberlink";
 
-    ///v TODO: Change to real solver
-    public DummySolver defaultSolver { get; } = new DummySolver();
+    public NumberlinkIntelligentSolver defaultSolver { get; } = new NumberlinkIntelligentSolver();
     public NumberlinkVerifier defaultVerifier { get; } = new NumberlinkVerifier();
     public DummyVisualization defaultVisualization { get; } = new DummyVisualization();
 
@@ -52,88 +49,92 @@ class NUMBERLINK : IProblem<DummySolver, NumberlinkVerifier, DummyVisualization>
     public ProblemType problemType { get; } = ProblemType.GamesAndPuzzles;
 
     public string[] contributors { get; } = {
-    "Andrija Sevaljevic",
-    "Brayden Peck",
-    "Charles Johnson"
+        "Andrija Sevaljevic",
+        "Brayden Peck",
+        "Charles Johnson"
     };
-
-    //v TODO: Internal DSA, probably just an enumerated grid + span?
-
 
     public string instance { get; set; } = string.Empty;
 
-    //v Our input grid of enumerated cells
-    public int[][] grid { get; set; }
+    //v Our input grid of enumerated cells (row-major: grid[y][x])
+    public int[][] grid { get; set; } = Array.Empty<int[]>();
 
-    //v Spans in each dimension
+    //v Spans in each dimension (width = spanX, height = spanY)
     public int spanX { get; set; }
     public int spanY { get; set; }
 
     //v Hash set of our colorings/numberings
-    public HashSet<int> numbersPresent { get; set; }
+    public HashSet<int> numbersPresent { get; set; } = new HashSet<int>();
 
-    public NUMBERLINK() : this(_defaultInstance) { /* ... */ }
+    //v The pair numbers in ascending order
+    public int[] pairIds { get; set; } = Array.Empty<int>();
+
+    //v Per pair number: (x, y) of the first endpoint and (x, y) of the second, in row-major order
+    public Dictionary<int, (int ax, int ay, int bx, int by)> endpoints { get; set; } = new();
+
+    public NUMBERLINK() : this(_defaultInstance) { }
 
     public NUMBERLINK(string inp) {
-        //v I made this based on the SUDOKU problem instance
+        if (string.IsNullOrWhiteSpace(inp))
+            throw new ProblemParseException(problemName, inp ?? string.Empty, "instance is empty");
+
         instance = inp;
-        numbersPresent = new HashSet<int>();
 
-        inp = inp.ReplaceLineEndings(string.Empty);
-        var rows = inp.Split(";", StringSplitOptions.RemoveEmptyEntries);
+        string[] rows = inp.Split(RowSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (rows.Length == 0)
+            throw new ProblemParseException(problemName, inp, "instance contains no rows");
 
-        //v Sentinel vqlue to help parse the row lengths
-        spanX = -1;
-        spanY = rows.Length;
-        grid = new int[spanY][];
+        int width = -1;
+        var parsed = new int[rows.Length][];
+        var positions = new Dictionary<int, List<(int x, int y)>>();
 
-        Dictionary<int, int> popCounts = new Dictionary<int, int>();
+        for (int y = 0; y < rows.Length; y++) {
+            string[] cells = rows[y].Split(',', StringSplitOptions.TrimEntries);
 
-        for (int i = 0; i < spanY; i++) {
-            var nums = rows[i].Split(",", StringSplitOptions.RemoveEmptyEntries);
-            try {
-                grid[i] = Array.ConvertAll(nums, int.Parse);
-            } catch (FormatException) {
-                throw new InvalidOperationException("Cell entries must be valid integers.");
-            }
+            if (width < 0) width = cells.Length;
+            else if (cells.Length != width)
+                throw new ProblemParseException(problemName, inp, "all grid rows must have the same number of cells");
 
-            //v If we have our sentinel value 
-            if (spanX < 0) spanX = grid[i].Length;
+            parsed[y] = new int[width];
+            for (int x = 0; x < width; x++) {
+                if (!int.TryParse(cells[x], NumberStyles.Integer, CultureInfo.InvariantCulture, out int v))
+                    throw new ProblemParseException(problemName, inp, $"cell ({x},{y}) is not a valid integer: '{cells[x]}'");
+                if (v < 0)
+                    throw new ProblemParseException(problemName, inp, $"cell ({x},{y}) is negative");
 
-            if (grid[i].Length != spanX) {
-                throw new InvalidOperationException("All grid row lengths must be uniform.");
-            }
+                parsed[y][x] = v;
+                if (v == 0) continue;
 
-
-            for (int j = 0; j < spanX; j++) {
-                int num = grid[i][j];
-                //v Ignore 0, it's fine.
-                if (num == 0) continue;
-                //v We don't want negative numbers.
-                if (num < 0) {
-                    throw new InvalidOperationException("Grid cells cannot be negative.");
+                if (!positions.TryGetValue(v, out var list)) {
+                    list = new List<(int x, int y)>();
+                    positions[v] = list;
                 }
-
-                int popNum = 0;
-                if (popCounts.ContainsKey(num)) popNum = popCounts[num];
-                popCounts[num] = 1 + popNum;
+                list.Add((x, y));
             }
         }
 
-        //v Validate that non-zero entries don't have counts less than 2
-        //v We already check for > 2 in the above loop.
-        foreach (int v in popCounts.Values) {
-            if (v < 2)
-                throw new InvalidOperationException("Non-zero numbers must occur exactly twice.");
+        foreach (var kv in positions) {
+            if (kv.Value.Count != 2)
+                throw new ProblemParseException(problemName, inp, $"number {kv.Key} must appear exactly twice but appears {kv.Value.Count} time(s)");
         }
 
+        grid = parsed;
+        spanX = width;
+        spanY = rows.Length;
+        numbersPresent = new HashSet<int>(positions.Keys);
+        pairIds = positions.Keys.ToArray();
+        Array.Sort(pairIds);
+        endpoints = new Dictionary<int, (int ax, int ay, int bx, int by)>();
+        foreach (var kv in positions) {
+            var (a, b) = (kv.Value[0], kv.Value[1]);
+            endpoints[kv.Key] = (a.x, a.y, b.x, b.y);
+        }
     }
 
     /*
      * Gets the cell at x, y
      * Cells are row-major, so this is a convenience for x,y ordering
      * Returns -1 on OOB
-     * TODO: Add modular index wrap?
      */
     public int at(int x, int y) {
         if (!in_bounds(x, y))

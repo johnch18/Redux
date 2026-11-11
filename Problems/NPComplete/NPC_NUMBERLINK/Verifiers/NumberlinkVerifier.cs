@@ -1,122 +1,120 @@
+using System.Globalization;
+using System.Text.Json.Serialization;
 using API.Interfaces;
 
 namespace API.Problems.NPComplete.NPC_NUMBERLINK.Verifiers;
 
-
 class NumberlinkVerifier : IVerifier<NUMBERLINK> {
-    public const string CertificateGrammar = "TODO: CertificateGrammar";
-    public const string CertificateExample = "TODO: CertificateExample";
 
-    public string verifierName { get; } = "TODO: verifierName";
-    public string verifierDefinition { get; } = "TODO: verifierDefinition";
-    public string source { get; } = "TODO: source";
-    public string certificate { get; } = "1D,2D,2L,2L,3D;\n1D,2D,4D,4L,3D;\n1D,2D,4F,3D,3L;\n1D,2F,3F,3L,5D;\n1R,1F,5F,5L,5L;";
-    public string[] contributors { get; } = {
-    "Andrija Sevaljevic",
-    "Brayden Peck",
-    "Charles Johnson"
-    };
+    public const string CertificateGrammar = "Same layout as the instance (rows separated by semicolons or newlines, cells by commas). Every cell is its path number followed by one letter: R, L, U or D (the direction of the next cell on that path) or F (this cell is the finishing endpoint of the path). Every cell must be filled.";
 
-    public NumberlinkVerifier() { /* ... */ }
+    public const string CertificateExample = "1D,2D,2L,2L,3D;\n1D,2D,4D,4L,3D;\n1D,2D,4F,3D,3L;\n1D,2F,3F,3L,5D;\n1R,1F,5F,5L,5L;";
 
-    public bool verify(NUMBERLINK problem, string cert) {
-        /*
-         * Conditions:
-         * - No 0s
-         * - No nodes w/ 4 alt-color neighbors
-         */
+    // --- Fields ---
+    public string verifierName { get; } = "Numberlink Path Verifier";
+    public string verifierDefinition { get; } = "For each numbered pair, one endpoint (the one not marked F) is the start. Follow the direction letters from the start; the walk must stay inside the grid, never revisit a cell, only use cells labelled with the pair's number, and end on the other endpoint marked F. Given numbers must be preserved. Finally the total number of cells covered by all paths must equal the number of cells in the grid.";
+    public string source { get; } = "Adcock, A., et al. (2015). Zig-Zag Numberlink is NP-Complete. Journal of Information Processing, 23(3), 239-245.";
+    public string sourceLink { get; } = "https://arxiv.org/abs/1410.5845";
+    public string[] contributors { get; } = { "Andrija Sevaljevic", "Brayden Peck", "Charles Johnson" };
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? complexity { get; set; } = "O(R*C)";
+    private string _certificate = "";
 
-
-        cert = cert.ReplaceLineEndings(string.Empty);
-        var rows = cert.Split(";", StringSplitOptions.RemoveEmptyEntries);
-        int spanY = rows.Length;
-
-        //v If the row count doesn't match, it's WRONG
-        if (spanY != problem.spanY) return false;
-
-        string[][] grid = new string[spanY][];
-
-        for (int y = 0; y < spanY; y++) {
-            grid[y] = rows[y].Split(",", StringSplitOptions.RemoveEmptyEntries);
-
-            //v If the row length isn't equal to spanX, WRONG
-            if (grid[y].Length != problem.spanX) return false;
+    public string certificate {
+        get {
+            return _certificate;
         }
+    }
 
-        //v Counter for cells traversed
-        int ntraced = 0;
-        int ntracedTot = problem.spanX * problem.spanY;
+    private static readonly char[] RowSeparators = { ';', '\n', '\r' };
 
-        for (int y = 0; y < spanY; y++) {
-            for (int x = 0; x < problem.spanX; x++) {
-                int color = problem.at(x, y);
-                //v Ignore 0
-                if (color == 0) continue;
-                //v OOB = WRONG
-                if (color < 0) return false;
+    // --- Methods Including Constructors ---
+    public NumberlinkVerifier() { }
 
-                string cell = grid[y][x];
+    public bool verify(NUMBERLINK problem, string certificate) {
+        _certificate = certificate;
+        ParseCertificate(problem, certificate, out int[,] ids, out char[,] dirs);
 
-                //v We don't start from the finish line, DUH
-                if (cell.EndsWith("F")) continue;
+        int w = problem.spanX, h = problem.spanY;
 
-                //v Temp positions, and cell
-                int tx = x;
-                int ty = y;
-                string tcell = cell;
-
-                while (!tcell.EndsWith("F")) {
-                    var suf = tcell[^1];
-                    ntraced += 1;
-
-                    //v We use directional codes, F means done.
-                    //v Invalid direction is WRONG.
-                    //v Since we check for F in the while loop, we do not
-                    //v need a dead case statement for it.
-                    switch (suf) {
-                        case 'R': {
-                                tx += 1;
-                                break;
-                            }
-                        case 'U': {
-                                ty -= 1;
-                                break;
-                            }
-                        case 'L': {
-                                tx -= 1;
-                                break;
-                            }
-                        case 'D': {
-                                ty += 1;
-                                break;
-                            }
-                        default: return false;
-                    }
-
-                    //v Ignore invalid positions
-                    if (!problem.in_bounds(tx, ty)) return false;
-
-                    //v Grab the prior characters to the direction
-                    var intStr = tcell[..^1];
-
-                    //v If this isn't an integer or it's the wrong one, WRONG
-                    if (!int.TryParse(intStr, out int intVal) || intVal != color) {
-                        return false;
-                    }
-
-                    //v Onto the next cell!
-                    tcell = grid[ty][tx];
-                }
-
-                //v We HATE Off by One Errors in this House.
-                //v Since we're not using a do-while style loop, we have
-                //v to account for this.
-                ntraced += 1;
-
+        // Every cell filled, and the given numbers preserved.
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (ids[y, x] == 0) return false;
+                int given = problem.grid[y][x];
+                if (given != 0 && ids[y, x] != given) return false;
             }
         }
 
-        //v Result is whether we touched all the grid cells or nah.
-        return ntraced == ntracedTot;
+        var visited = new bool[h, w];
+        int covered = 0;
+
+        foreach (int id in problem.pairIds) {
+            var (ax, ay, bx, by) = problem.endpoints[id];
+
+            // Exactly one endpoint is the finish; the other is the start.
+            bool aFinish = dirs[ay, ax] == 'F';
+            bool bFinish = dirs[by, bx] == 'F';
+            if (aFinish == bFinish) return false;
+
+            (int sx, int sy, int fx, int fy) = aFinish ? (bx, by, ax, ay) : (ax, ay, bx, by);
+
+            int cx = sx, cy = sy;
+            while (true) {
+                if (visited[cy, cx] || ids[cy, cx] != id) return false;
+                visited[cy, cx] = true;
+                covered++;
+
+                char d = dirs[cy, cx];
+                if (d == 'F') {
+                    if (cx != fx || cy != fy) return false;
+                    break;
+                }
+
+                int dir = NumberlinkCertificate.Letters.IndexOf(d);
+                cx += NumberlinkCertificate.Dx[dir];
+                cy += NumberlinkCertificate.Dy[dir];
+                if (!problem.in_bounds(cx, cy)) return false;
+            }
+        }
+
+        return covered == w * h;
+    }
+
+    private static void ParseCertificate(NUMBERLINK problem, string certificate, out int[,] ids, out char[,] dirs) {
+        if (string.IsNullOrWhiteSpace(certificate))
+            throw new CertificateParseException(problem, certificate ?? string.Empty, "certificate is empty");
+
+        int w = problem.spanX, h = problem.spanY;
+        string[] rows = certificate.Split(RowSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (rows.Length != h)
+            throw new CertificateParseException(problem, certificate, $"expected {h} rows but found {rows.Length}");
+
+        ids = new int[h, w];
+        dirs = new char[h, w];
+
+        for (int y = 0; y < h; y++) {
+            string[] cells = rows[y].Split(',', StringSplitOptions.TrimEntries);
+            if (cells.Length != w)
+                throw new CertificateParseException(problem, certificate, $"row {y} has {cells.Length} cells but {w} were expected");
+
+            for (int x = 0; x < w; x++) {
+                string token = cells[x];
+                string expected = $"cell ({x},{y}) '{token}' must be a path number followed by one of R, L, U, D, F";
+
+                if (token.Length < 2)
+                    throw new CertificateParseException(problem, certificate, expected);
+
+                char letter = char.ToUpperInvariant(token[^1]);
+                if ("RLUDF".IndexOf(letter) < 0)
+                    throw new CertificateParseException(problem, certificate, expected);
+
+                if (!int.TryParse(token.AsSpan(0, token.Length - 1), NumberStyles.None, CultureInfo.InvariantCulture, out int id))
+                    throw new CertificateParseException(problem, certificate, expected);
+
+                ids[y, x] = id;
+                dirs[y, x] = letter;
+            }
+        }
     }
 }

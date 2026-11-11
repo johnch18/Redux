@@ -35,6 +35,13 @@
     <Content Remove="Tools/ContributorStatsSync/**" />
     <None Remove="Tools/ContributorStatsSync/**" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Problems\NPComplete\NPC_NUMBERLINK\NUMBERLINK_Class.cs" />
+    <Compile Remove="Problems\NPComplete\NPC_NUMBERLINK\Solvers\NumberlinkBacktrackingSolver.cs" />
+    <Compile Remove="Problems\NPComplete\NPC_NUMBERLINK\Solvers\NumberlinkBruteForceSolver.cs" />
+    <Compile Remove="Problems\NPComplete\NPC_NUMBERLINK\Solvers\NumberlinkIntelligentSolver.cs" />
+    <Compile Remove="Problems\NPComplete\NPC_NUMBERLINK\Verifiers\NumberlinkVerifier.cs" />
+  </ItemGroup>
 
 
 </Project>
