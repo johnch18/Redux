@@ -42,6 +42,9 @@
     <Compile Remove="Problems\NPComplete\NPC_NUMBERLINK\Solvers\NumberlinkIntelligentSolver.cs" />
     <Compile Remove="Problems\NPComplete\NPC_NUMBERLINK\Verifiers\NumberlinkVerifier.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Problems\NPComplete\NPC_NUMBERLINK\Solvers\NumberlinkZDD.txt" />
+  </ItemGroup>
 
 
 </Project>

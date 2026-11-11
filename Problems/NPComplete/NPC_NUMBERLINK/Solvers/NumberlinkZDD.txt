@@ -109,7 +109,7 @@ class NumberlinkZDD : ISolver<NUMBERLINK> {
             Edge e = edges[i];
             Dictionary<Frontier, ZddNode> nextLayer = new Dictionary<Frontier, ZddNode>();
             var remEdges = edges.Skip(i + 1).ToList();
-            HashSet<int> deadVerts = new HashSet<int(verts);
+            HashSet<int> deadVerts = new HashSet<int>(verts);
             foreach (var remEdge in remEdges) {
                 deadVerts.Remove(remEdge.u);
                 deadVerts.Remove(remEdge.v);
