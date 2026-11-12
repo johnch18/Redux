@@ -71,7 +71,7 @@ class NumberlinkAhleDiagonal : ISolver<NUMBERLINK> {
         Calls = 0;
 
         string certificate = Choose(_crnr[N | W]) ? Render(w0, h0) : fail;
-        if(problem.defaultVerifier.verify(problem, certificate)) return certificate;
+        if (problem.defaultVerifier.verify(problem, certificate)) return certificate;
         return fail;
     }
 
